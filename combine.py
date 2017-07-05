@@ -28,20 +28,21 @@ def partition(range_list, depth=0):
     return (range_list, depth+1) 
     
 
-def criteria(region_list): 
+def criteria(region_list, iteration): 
     numberofSubregion = len(region_list)
     dim = len(region_list[0])   
-    N = ceil(log(alpha) / log(1-delta)) # number of sample point we need in one subregion
-    R = ceil(log(alpha / (2 * numberofSubregion-1)) / log(0.5)) #number of replication
+    N = ceil(log(alpha/(2)**iteration) / log(1-delta)) # number of sample point we need in one subregion
+    R = ceil(log(alpha/(2)**iteration / (2 * numberofSubregion-1)) / log(0.5)) #number of replication
     X_matrix = np.zeros((numberofSubregion,N,dim))
     for m in range(numberofSubregion) :
         for n in range(N):
             for d in range(dim):                
                 X_matrix[m,n,d] = np.random.uniform(region_list[m][d][0],region_list[m][d][1])
     # f(X) with noise
-    fofx = (1/2)*(100*(X_matrix[:,:,1]-X_matrix[:,:,0]**2)**2+(1-X_matrix[:,:,0])**2)  
+    fofx = 0.01 * X_matrix[:,:,0]**2 + X_matrix[:,:,1]**2-100
     tempfofx = fofx.repeat(R)
     noise = np.random.normal(mean,sigma,N*R*numberofSubregion)
+    #noise = 0
     fofx = tempfofx+noise
     hatFofx = fofx.reshape(numberofSubregion,N,R)
     #print('hatFox=',hatFofx)
@@ -51,7 +52,8 @@ def criteria(region_list):
     bestRegion = int(np.argmin(avgfofx)/N)
     #print('bestRegion=',bestRegion)
     bestPointinbestRegion = np.argmin(avgfofx[bestRegion])
-    #print('bestPointinbestRegion=',bestPointinbestRegion)
+    best_object_value = avgfofx[bestRegion][bestPointinbestRegion]  #final objective value
+    best_x_solution = X_matrix[bestRegion][bestPointinbestRegion]  #final optimal solution x
     worstPointwithNoise = hatFofx[bestRegion][bestPointinbestRegion][np.argmax(hatFofx[bestRegion][bestPointinbestRegion])]
     #print('worstPointwithNoise=',worstPointwithNoise)
     
@@ -65,22 +67,26 @@ def criteria(region_list):
             pass
         elif hatFofx[i,notbestRegion[i],np.argmin(hatFofx[i][notbestRegion[i]])] < worstPointwithNoise:
             remainRegion.append(region_list[i])
-    return(remainRegion)                       
+    return(remainRegion,best_x_solution,best_object_value)
 
-range_list=[[(-1,4),(-1,4)]]
+
+range_list=[[(2,50),(-50,50)]]
 delta = 0.1 #clossness parameter
 alpha = 0.25 #error rate
 epsilon = 0.001 #condition to terminate subregion with continuous case 
-mean,sigma = 0,1   # distribution of noise
+mean,sigma = 0,0.0001   # distribution of noise
 #M = 2 #number of subregions
 
 newRange_list,depth = partition(range_list)
+iteration = 1
 while(newRange_list != range_list):
     #print(newRange_list)
-    range_list = criteria(newRange_list)
+    range_list,best_x,best_object_value = criteria(newRange_list,iteration)
     #print(range_list)
     newRange_list,depth = partition(range_list,depth)
     #print(newRange_list)
+    iteration += 1
+#final output is x(1)(1),hatfofx,remainging subregion
+print(best_x,best_object_value)    
 print(newRange_list)
     
-
