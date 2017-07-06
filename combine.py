@@ -17,13 +17,14 @@ def partition(range_list, depth=0):
         if axis == axis_hat:
             return (range_list,depth)
         
-    cuttingPoint = (range_list[0][axis][1] + range_list[0][axis][0])/2
+    
     #print(cuttingPoint)
     left_range_list = copy.deepcopy(range_list)
     right_range_list = copy.deepcopy(range_list) 
     for j in range(len(range_list)):
-        left_range_list[j][axis] = (range_list[0][axis][0],cuttingPoint)
-        right_range_list[j][axis] = (cuttingPoint,range_list[0][axis][1])
+        cuttingPoint = (range_list[j][axis][1] + range_list[j][axis][0])/2
+        left_range_list[j][axis] = (range_list[j][axis][0],cuttingPoint)
+        right_range_list[j][axis] = (cuttingPoint,range_list[j][axis][1])
     range_list = left_range_list+ right_range_list
     return (range_list, depth+1) 
     
@@ -59,10 +60,11 @@ def criteria(region_list, iteration):
     
     notbestRegion = np.argmin(avgfofx,axis = 1)
     #print('notbestRegion',notbestRegion)
-
+    
+    remainRegion = []
+    remainRegion.append(region_list[bestRegion])
     for i in range(numberofSubregion):
-        remainRegion = []
-        remainRegion.append(region_list[bestRegion])
+
         if i == bestRegion:
             pass
         elif hatFofx[i,notbestRegion[i],np.argmin(hatFofx[i][notbestRegion[i]])] < worstPointwithNoise:
@@ -71,22 +73,25 @@ def criteria(region_list, iteration):
 
 
 range_list=[[(2,50),(-50,50)]]
-delta = 0.1 #clossness parameter
+delta = 0.01 #clossness parameter
 alpha = 0.25 #error rate
-epsilon = 0.001 #condition to terminate subregion with continuous case 
+epsilon = 0.01 #condition to terminate subregion with continuous case 
 mean,sigma = 0,0.0001   # distribution of noise
 #M = 2 #number of subregions
 
 newRange_list,depth = partition(range_list)
+bestRegion_list = range_list[:]
+newRange_list.sort()
+range_list.sort()
 iteration = 1
 while(newRange_list != range_list):
-    #print(newRange_list)
     range_list,best_x,best_object_value = criteria(newRange_list,iteration)
-    #print(range_list)
     newRange_list,depth = partition(range_list,depth)
-    #print(newRange_list)
+    bestRegion_list = range_list[:]
+    newRange_list.sort()
+    range_list.sort()   
     iteration += 1
 #final output is x(1)(1),hatfofx,remainging subregion
 print(best_x,best_object_value)    
-print(newRange_list)
+print(bestRegion_list)
     
